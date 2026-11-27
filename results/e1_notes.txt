@@ -1,0 +1,13 @@
+Without scaling, gradient descent did not converge within the 20,000-step limit in any setting, for both linear and logistic regression. The problem is badly conditioned: for linear regression the condition number is about 16,000 at scale ratio 1 and grows to about 44.6 million at ratio 1000.
+
+The large value at ratio 1 comes from the nonzero feature means in our data. When we removed the mean offset, the condition number at ratio 1 dropped to 12.7 and gradient descent converged in 112 steps. But at ratio 100 the condition number was still about 21,000 without the offset, so the means are not the only problem: features on very different scales cause trouble too.
+
+Standardization and whitening are almost unaffected by the scale ratio. For linear regression, standardization needs about 112-114 steps at every ratio, and whitening needs only 3. For logistic regression, standardization needs 255 steps at ratio 1 and then stays at about 530-550 for ratios 10 to 1000, while whitening needs 46 steps at ratio 1 and then stays at about 92-96.
+
+Min-max scaling helps a lot compared with no scaling, but it is much worse than standardization. For linear regression it needs about 3,800-3,900 steps. For logistic regression it did not converge within the limit at ratios 10, 100 and 1000.
+
+Why is min-max worse? At scale ratio 100, the min-max features have means of about 0.45-0.57 and standard deviations of only about 0.14-0.17, while standardized features have mean 0 and standard deviation 1. When we centered the min-max features at that ratio, the condition number dropped from about 204 to 53 (with a plain L2 penalty), but this is still higher than the 12.7 for standardization. So both the nonzero means and the small, unequal spreads of min-max features slow gradient descent down.
+
+Whitening and PCA whitening gave identical results, and all scalers reached the same optimal objective value, so the comparison is fair. With 10 features, every scaler took about a millisecond or less. Whitening should become more expensive as the number of features grows, because it needs an eigendecomposition, and the cost experiment will measure whether its savings in steps are worth that.
+
+Overall, scaling reduces the number of steps by orders of magnitude, and whitening is the strongest method.

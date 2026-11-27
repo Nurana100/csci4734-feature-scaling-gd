@@ -1,0 +1,59 @@
+D1. Why the condition number sets the number of steps
+
+For linear regression with an L2 penalty, the loss is f(w) = (1/2n)·‖Xw − y‖² + (λ/2)·wᵀPw, where X includes a column of ones for the intercept, which is not penalized. Its gradient is ∇f(w) = H(w − w*), where w* is the minimum and H = XᵀX/n + λP is the Hessian. H is constant because the loss is quadratic.
+
+One gradient step with step size η changes the error e = w − w* into (I − ηH)e. Along an eigenvector of H with eigenvalue λᵢ, the error is multiplied by (1 − ηλᵢ) at every step. This only converges if η < 2/λ_max, which is the limit the learning-rate experiment (E3) tests.
+
+We use η = 1/λ_max. The direction with the smallest eigenvalue then shrinks by a factor (1 − 1/κ) per step, where κ = λ_max/λ_min is the condition number. We stop when the objective gap falls below 10⁻⁸, and that gap shrinks like the square of the error, so the number of steps is about (κ/2)·ln(gap₀/10⁻⁸). With a starting gap of order 1, this is roughly 9κ. The important point is that the number of steps grows in proportion to κ.
+
+Geometrically, the contour lines of f are ellipses. A large κ means a long, narrow valley: the steep walls limit the step size, so progress along the valley floor is slow.
+
+For logistic regression the Hessian is XᵀSX/n + λP, where S is diagonal with entries p(1 − p) ≤ 1/4. It depends on w, so there is no exact formula, but the same argument holds near the optimum. We use the step size 1/L with L = λ_max(¼·XᵀX/n + λP), an upper bound on the largest eigenvalue.
+
+Check with the E2 results (linear regression, scale ratio 100):
+
+scaler        rho    κ         iterations   iterations / κ
+standardize   0.5    12.9      114          8.8
+standardize   0.9    106.6     894          8.4
+standardize   0.99   1122.1    8081         7.2
+min-max       0      677.1     6155         9.1
+min-max       0.5    426.0     3912         9.2
+min-max       0.9    2530.8    19753        7.8
+
+Across these rows κ changes by a factor of about 200, while iterations/κ stays between 7 and 9, close to the predicted 9.
+
+
+D2. What each scaler does to the Hessian
+
+Our scalers write the scaled data as X_s = (X − μ)·A. Let Σ be the covariance of the raw features and m the mean of the scaled features. Without the penalty, the Hessian is
+
+H = [ AᵀΣA + m·mᵀ , m ; mᵀ , 1 ].
+
+If the scaled features are centered (m = 0), the intercept separates out and κ depends only on AᵀΣA (plus the penalty). Each scaler is a different choice of μ and A.
+
+No scaling (A = I, μ = 0). The features keep their different scales and their nonzero means. With the offset at scale ratio 1, κ = 16,003; without the offset it is 12.7 (check_offset.py). κ grows roughly with the square of the scale ratio, so a tenfold increase in the ratio should multiply it by about 100; we measured a factor of 89 from ratio 100 to 1000.
+
+Standardization (μ = mean, A = D⁻¹, where D holds the standard deviations). The features are centered and AᵀΣA = D⁻¹ΣD⁻¹ is the correlation matrix R, which has ones on its diagonal. The scale ratio disappears and only the correlation remains. In our data every pair of features has the same correlation ρ, so with d = 10 features R has one eigenvalue 1 + 9ρ and nine eigenvalues 1 − ρ, which gives κ = (1 + 9ρ)/(1 − ρ):
+
+rho                                 0     0.5    0.9     0.99
+formula                             1     11     91      991
+correlation matrix of our sample    1.2   13.0   108.8   1186.5
+measured Hessian κ                  1.2   12.9   106.6   1122.1
+
+The formula describes the true correlation matrix. Our sample has only 2,000 rows, and the smallest of nine nearly equal eigenvalues comes out below their average, so the sample κ is slightly larger. The measured values follow the sample matrix closely.
+
+Min-max (μ = min, A = diag(1/range)). The features are not centered: their means are about 0.45-0.57. Their standard deviations are only about 0.14-0.17, so their variances are small (about 0.02) and unequal. At rho = 0.5, κ = 426.0 against 12.9 for standardization. Centering alone lowers it from about 204 to 53 (check_minmax.py, plain L2 penalty), which is still above standardization's 12.7, so both the means and the small unequal spreads contribute.
+
+Whitening (μ = mean, A = Σ^(−1/2)). Now AᵀΣA = Σ^(−1/2)·Σ·Σ^(−1/2) = I, so the data part of the Hessian is exactly the identity, whatever the scale ratio and correlation. This is why whitening needs only 3 steps for linear regression. The only deviation comes from the penalty: in whitened space it is λΣ⁻¹, so the Hessian is I + λΣ⁻¹. Its condition number for our data is 1.01, 1.02, 1.09 and 1.91 for rho = 0, 0.5, 0.9, 0.99, which matches the measured values. PCA whitening differs from this only by a rotation, so it gives identical results.
+
+Logistic regression. Whitening cannot make the Hessian exactly the identity here, because the weights p(1 − p) differ between samples. κ rises from 4.9 to 75.5 as rho grows from 0 to 0.99, and whitening needs 73 to 617 steps.
+
+Summary (linear regression, scale ratio 100, rho = 0.5):
+
+scaler        what the Hessian becomes                      κ
+none          dominated by scale and mean effects           499,281
+min-max       small, unequal variances plus nonzero means   426.0
+standardize   the correlation matrix R                      12.9
+whiten        the identity (plus the penalty)               1.0
+
+Whitening needs Σ^(−1/2), which requires an eigendecomposition. Whether that cost is worth the saved steps is what the cost experiment (E4) measures.

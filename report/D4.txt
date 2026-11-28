@@ -1,0 +1,29 @@
+D4. Which penalty makes regularization the same after scaling
+
+Our scalers write the scaled data as X_s = (X − μ)·A, and gradient descent fits the model on X_s with weights w_s and intercept b_s. The prediction is
+
+X_s·w_s + b_s = (X − μ)·A·w_s + b_s = X·(A·w_s) + (b_s − μ·A·w_s).
+
+So the scaled model is the same as a raw-data model with
+
+w_raw = A·w_s,   b_raw = b_s − μᵀ·w_raw.
+
+This is what coef_to_raw in scalers.py computes. The data part of the loss, (1/2n)·‖Xw + b − y‖², therefore takes the same value in both spaces.
+
+Ridge regression on the raw data penalizes (λ/2)·‖w_raw‖². Writing this in terms of the scaled weights gives
+
+‖w_raw‖² = (A·w_s)ᵀ(A·w_s) = w_sᵀ·(AᵀA)·w_s.
+
+So the equivalent penalty in scaled space is (λ/2)·w_sᵀ·P·w_s with P = AᵀA. This is penalty_matrix() in scalers.py. The intercept is not penalized in either space, which is why Problem puts P only in the top-left d×d block of Pb and leaves the bias row and column at zero. If the bias were penalized, the shift μ would mix into the penalty and the two problems would not match.
+
+With this P the scaled problem is just the raw ridge problem with a change of variables, so every scaler has the same minimum value and the same raw-space solution. For each scaler:
+
+- none: A = I, so P = I (plain ridge).
+- standardize: A = D⁻¹, so P = D⁻², a diagonal matrix with 1/σⱼ².
+- min-max: A = diag(1/rangeⱼ), so P = diag(1/rangeⱼ²).
+- whiten: A = Σ^(−1/2), so P = Σ⁻¹.
+- PCA whiten: A = V·Λ^(−1/2), so P = Λ⁻¹ (diagonal).
+
+The naive choice P = I penalizes ‖w_s‖² = ‖A⁻¹·w_raw‖², a different penalty for each scaler. E5 confirms this: with P = AᵀA all scalers reach f = 0.1315 at λ = 0.1, while with P = I the values are 0.5661 (standardize), 3.9271 (min-max) and 0.6904 (whitening).
+
+Link to preconditioning (ignoring the intercept, which only adds a shift): in the scaled space the Hessian is AᵀHA, where H is the raw Hessian (data part plus λI). A gradient step on w_s, mapped back to raw space, is w_raw ← w_raw − η·AAᵀ·∇f(w_raw). So scaling with the matched penalty is exactly gradient descent on the same raw problem with preconditioner AAᵀ.

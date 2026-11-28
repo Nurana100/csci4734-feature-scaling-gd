@@ -1,0 +1,6 @@
+scaler          f_naive    f_equiv
+none             0.1315     0.1315
+standardize      0.5661     0.1315
+min-max          3.9271     0.1315
+whiten           0.6904     0.1315
+pca-whiten       0.6904     0.1315

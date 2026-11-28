@@ -20,6 +20,9 @@ python src/demo.py
 # 3. Run the experiments (from the repo folder, results are saved to results/)
 python src/experiment_e1.py   # steps vs feature scale ratio
 python src/experiment_e2.py   # steps vs feature correlation
+
+# 4. Make the figures for E1 and E2
+python src/plot_e1_e2.py
 ```
 
 ## Idea
@@ -37,6 +40,14 @@ Linear regression, scale ratio 100, feature correlation 0.5, stopping at objecti
 | Standardization | 12.9 | 114 |
 | Whitening | 1.0 | 3 |
 
+## Figures
+
+![E1: steps vs feature scale ratio](results/e1_iterations.png)
+
+![E2: steps vs feature correlation](results/e2_iterations.png)
+
+![Steps vs condition number](results/iterations_vs_condition_number.png)
+
 ## Experiments
 
 | ID | What it measures | Owner | Status |
@@ -47,11 +58,12 @@ Linear regression, scale ratio 100, feature correlation 0.5, stopping at objecti
 | E4 | Total cost: scaling time plus gradient descent time | Ilknur | in progress |
 | E5 | L2 penalty equivalent across scalers | Nijat | in progress |
 
+Derivations: D1 and D2 (Nurana, `report/D1_D2.txt`), D4 (Nijat), D5 (Ilknur).
 
 ## Repository structure
 
 ```
-src/         code: data_gen.py, scalers.py, gd.py, experiment_e1.py, experiment_e2.py, demo.py
+src/         code: data_gen.py, scalers.py, gd.py, experiment_e1.py, experiment_e2.py, plot_e1_e2.py, demo.py
 results/     CSV files, figures and short notes for each experiment
 report/      report drafts and derivations
 slides/      presentation

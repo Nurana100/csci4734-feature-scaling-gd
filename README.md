@@ -18,11 +18,13 @@ pip install -r requirements.txt
 python src/demo.py
 
 # 3. Run the experiments (from the repo folder, results are saved to results/)
-python src/experiment_e1.py   # steps vs feature scale ratio
-python src/experiment_e2.py   # steps vs feature correlation
+python src/experiment_e1.py      # steps vs feature scale ratio, seed 0
+python src/experiment_e2.py      # steps vs feature correlation, seed 0
+python src/experiment_seeds.py   # E1 and E2 over 10 seeds (takes about 10 minutes)
 
-# 4. Make the figures for E1 and E2
-python src/plot_e1_e2.py
+# 4. Make the figures
+python src/plot_e1_e2.py         # seed-0 figures and the condition-number plot
+python src/plot_seeds.py         # 10-seed summary table and figures
 ```
 
 ## Idea
@@ -31,20 +33,24 @@ Gradient descent is slow when features have very different scales or are correla
 
 ## Headline result
 
-Linear regression, scale ratio 100, feature correlation 0.5, stopping at objective gap below 1e-8:
+Linear regression, scale ratio 100, feature correlation 0.5, median over 10 seeds, stopping at objective gap below 1e-8:
 
-| Scaler | Hessian condition number | Steps |
-|---|---|---|
-| None | 499,281 | did not converge in 20,000 |
-| Min-max | 426 | 3,912 |
-| Standardization | 12.9 | 114 |
-| Whitening | 1.0 | 3 |
+| Scaler | Hessian condition number | Steps | Runs that converged |
+|---|---|---|---|
+| None | 786,192 | did not converge in 20,000 | 0 of 10 |
+| Min-max | 445 | 3,695 | 10 of 10 |
+| Standardization | 12.5 | 109 | 10 of 10 |
+| Whitening | 1.0 | 3 | 10 of 10 |
 
 ## Figures
 
-![E1: steps vs feature scale ratio](results/e1_iterations.png)
+Median and 25-75% range over 10 seeds:
 
-![E2: steps vs feature correlation](results/e2_iterations.png)
+![E1: steps vs feature scale ratio](results/e1_seeds.png)
+
+![E2: steps vs feature correlation](results/e2_seeds.png)
+
+Steps grow in proportion to the Hessian condition number (seed 0, linear regression):
 
 ![Steps vs condition number](results/iterations_vs_condition_number.png)
 
@@ -52,8 +58,8 @@ Linear regression, scale ratio 100, feature correlation 0.5, stopping at objecti
 
 | ID | What it measures | Owner | Status |
 |---|---|---|---|
-| E1 | Steps to converge vs feature scale ratio | Nurana | done |
-| E2 | Steps to converge vs feature correlation | Nurana | done |
+| E1 | Steps to converge vs feature scale ratio (10 seeds, ratio 1 to 10^4) | Nurana | done |
+| E2 | Steps to converge vs feature correlation (10 seeds) | Nurana | done |
 | E3 | Learning-rate sensitivity | Nijat | in progress |
 | E4 | Total cost: scaling time plus gradient descent time | Ilknur | in progress |
 | E5 | L2 penalty equivalent across scalers | Nijat | in progress |
@@ -63,7 +69,7 @@ Derivations: D1 and D2 (Nurana, `report/D1_D2.txt`), D4 (Nijat), D5 (Ilknur).
 ## Repository structure
 
 ```
-src/         code: data_gen.py, scalers.py, gd.py, experiment_e1.py, experiment_e2.py, plot_e1_e2.py, demo.py
+src/         code: data_gen.py, scalers.py, gd.py, experiment_e1.py, experiment_e2.py, experiment_seeds.py, plot_e1_e2.py, plot_seeds.py, demo.py
 results/     CSV files, figures and short notes for each experiment
 report/      report drafts and derivations
 slides/      presentation
